@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project approach2code">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="E:/MinhPT/Eclipse/approach2code/approach2code.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Main-Class" value="approach2"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <zipfileset excludes="META-INF/*.SF" src="C:/Program Files/IBM/ILOG/CPLEX_Studio1251/cplex/lib/cplex.jar"/>
+            <fileset dir="E:/MinhPT/Step3-PostdocLIP6/ICN_caching/code/approach2code"/>
+        </jar>
+    </target>
+</project>
