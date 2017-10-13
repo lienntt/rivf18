@@ -122,6 +122,9 @@ public class approach2 {
 		 */
 		//int maxE = 10, maxV = 10, maxF = 10, maxP = 1;
 		int maxP = 1;
+                
+                //number of time wwindow
+                int nT;
 
 		// INPUT
 		// VNF
@@ -130,7 +133,11 @@ public class approach2 {
 					// processing one unit of flow rate
 
 		// k(vsti) = 1: the ith VNF of demand (s,t) is deployed at node v
-		int[][][][] k;// = new int[maxV-1][maxV-1][maxV-1][maxF-1];//
+		//int[][][][] k;// = new int[maxV-1][maxV-1][maxV-1][maxF-1];//
+                
+                // k(vstit) = 1: the ith VNF of demand (s,t) is deployed at node v at time window t
+		int[][][][][] k;// = new int[maxV-1][maxV-1][maxV-1][maxF-1][maxT-1];//
+                
                 
 		// G(V,E)
 		int nV, nE;
@@ -138,10 +145,13 @@ public class approach2 {
 		int[] jj;// = new int[maxE - 1]; // terminating node of link e
 		double[] ce;// = new int[maxE - 1]; // link capacity
 		int[] cv;// = new int[maxV - 1]; // node capacity
+                
+                //Cet
+                int [][] cost_et; // = new int[maxE-1][maxT-1]// routing cost of link e at time window t
 
 		// demands
 		int nD; int nD2;
-		int[][] h;// = new int[maxV - 1][maxV - 1]; // flow rate of demand (s,t)
+		int[][][] h;// = new int[maxV - 1][maxV - 1][maxT-1]; // flow rate of demand (s,t) at time window t
 		int[][][] f;// = new int [maxV - 1][maxV - 1][maxF]; // required VNFs of
 					// demand (s,t)
 
@@ -150,15 +160,15 @@ public class approach2 {
 		double[][] l;// = new int[maxV-1][maxV-1]; // length of the shortest
 						// path
 
-		// x(epst): rate of flow p from node s to node t on link e
-		double[][][][] x;// = new float[maxE-1][maxP][maxV-1][maxV-1] ;
+		// x(epstt): rate of flow p from node s to node td on link e at timewindow t
+		double[][][][][] x;// = new float[maxE-1][maxP][maxV-1][maxV-1][maxT-1] ;
 
-		double[][] y;// = new float[maxV-1][maxV-1];
+		double[][][] y;// = new float[maxV-1][maxV-1][maxT-1];
 
 		// u(e,t) = 1: link e is on the shortest path to node t
 		double[][] u;// = new int[maxE-1][maxV-1];
 
-		String input_file_param = "3data.txt";
+		String input_file_param = "in2_param.txt";
 		File inFile1;
 		inFile1 = new File(input_file_param);
 		Scanner scanner = new Scanner(inFile1, "UTF-8");
@@ -168,18 +178,33 @@ public class approach2 {
 		Scanner lineScan = new Scanner(line);
 		maxP = Integer.parseInt(lineScan.next());
 
+                System.out.println("maxP : " + maxP);
+                
 		// nDTest: so demand se chay
 		line = scanner.nextLine();
+                line = scanner.nextLine();
 		lineScan = new Scanner(line);
 		int nDTest = Integer.parseInt(lineScan.next());
 		
+                System.out.println("nDemand : " + nDTest);
+                
+                //Timewindow T
+		line = scanner.nextLine();
+		line = scanner.nextLine();
+		lineScan = new Scanner(line);
+		nT = Integer.parseInt(lineScan.next());
+                
+                System.out.println("nTimewindow : " + nT);
+                
 		// VNF
 		line = scanner.nextLine();
 		line = scanner.nextLine();
 		lineScan = new Scanner(line);
 		nF = Integer.parseInt(lineScan.next());
 		rf = new int[nF];
-
+                
+                 System.out.println("nVNF : " + nF);
+                 
 		for (int i = 0; i < nF; i++) {
 			line = scanner.nextLine();
 			lineScan = new Scanner(line);
@@ -195,7 +220,10 @@ public class approach2 {
 		ii = new int[nE]; // starting node of link e
 		jj = new int[nE]; // terminating node of link e
 		ce = new double[nE]; // link capacity
-
+                cost_et = new int[nE][nT];//routing cost of link e at time window t
+                
+                 System.out.println("nE : " + nE);
+                
 		for (int i = 0; i < nE; i++) {
 			line = scanner.nextLine();
 			lineScan = new Scanner(line);
@@ -206,6 +234,9 @@ public class approach2 {
 			ii[e1] = ie1;
 			jj[e1] = je1;
 			ce[e1] = ce1;
+                        for (int tt = 0; tt < nT; tt++) {
+                            cost_et[e1][tt] = Integer.parseInt(lineScan.next());
+                        }
 		}
 
 		// G(V,E): V
@@ -214,7 +245,7 @@ public class approach2 {
 		lineScan = new Scanner(line);
 		nV = Integer.parseInt(lineScan.next());
 		cv = new int[nV];
-
+                 System.out.println("nV : " + nV);
 		for (int i = 0; i < nV; i++) {
 			line = scanner.nextLine();
 			lineScan = new Scanner(line);
@@ -230,12 +261,13 @@ public class approach2 {
 		nD = Integer.parseInt(lineScan.next());
 		nD2 = nD;
 		nD = nDTest;
-		h = new int[nV][nV]; // flow rate of demand (s,t)
+                System.out.println("nD : " + nD);
+		h = new int[nV][nV][nT]; // flow rate of demand (s,t) at time window t
 		f = new int[nV][nV][nF + 1]; // required VNFs of demand (s,t)
 
 		for (int i = 0; i < nV; i++)
 			for (int j = 0; j < nV; j++) {
-				h[i][j] = 0;
+				h[i][j][nT-1] = 0;
 				f[i][j][nF] = 0;
 			}
 
@@ -245,9 +277,15 @@ public class approach2 {
 			if (i < nD){
 				int s1 = Integer.parseInt(lineScan.next());
 				int t1 = Integer.parseInt(lineScan.next());
-				int h1 = Integer.parseInt(lineScan.next());
+//				int h1 = Integer.parseInt(lineScan.next());
+                                for (int tt = 0; tt < nT; tt++) {
+					int hdt = Integer.parseInt(lineScan.next());
+					h[s1][t1][tt] = hdt;
+                                        System.out.println("hdt : " + hdt);
+				}
 				int nf1 = Integer.parseInt(lineScan.next());
-				h[s1][t1] = h1;
+                                System.out.println("nf1 : " + nf1);
+//				h[s1][t1] = h1;
 				f[s1][t1][nF] = nf1;
 				for (int j = 0; j < nf1; j++) {
 					int f1 = Integer.parseInt(lineScan.next());
@@ -256,13 +294,15 @@ public class approach2 {
 			}
 		}
 
-		// k(vsti) = 1: the ith VNF of demand (s,t) is deployed at node v
-		k = new int[nV][nV][nV][nF];//
+		// k(vstit) = 1: the ith VNF of demand (s,t) is deployed at node v at time window t
+		k = new int[nV][nV][nV][nF][nT];//
 		for (int v = 0; v < nV; v++)
 			for (int s = 0; s < nV; s++)
 				for (int t = 0; t < nV; t++)
 					for (int i = 0; i < nF; i++) {
-						k[v][s][t][i] = 0;
+                                            for (int tt = 0; tt < nT; tt++) {
+                                                    k[v][s][t][i][tt] = 0;
+                                            }
 					}
 
 		line = scanner.nextLine();
@@ -272,29 +312,32 @@ public class approach2 {
 			int s1 = Integer.parseInt(lineScan.next());
 			int t1 = Integer.parseInt(lineScan.next());
 			for (int j = 0; j < f[s1][t1][nF]; j++) {
+                            //each line for each time window
+                            for(int tt = 0; tt<nT; tt++){
 				line = scanner.nextLine();
 				lineScan = new Scanner(line);
 				int nDeploymentNode = Integer.parseInt(lineScan.next());
 				for (int inode = 0; inode < nDeploymentNode; inode++) {
 					int nn = Integer.parseInt(lineScan.next());
-					k[nn][s1][t1][j] = 1;
+					k[nn][s1][t1][j][tt] = 1;
 				}
+                            }
 			}
 		}
 
 		w = new double[nE]; // metric
 		l = new double[nV][nV]; // length of the shortest path
 
-		// x(epst): rate of flow p from node s to node t on link e
-		x = new double[nE][maxP][nV][nV];
+		// x(epstt): rate of flow p from node s to node t on link e at time window t
+		x = new double[nE][maxP][nV][nV][nT];
 
-		y = new double[nV][nV];
+		y = new double[nV][nV][nT];
 
 		// u(e,t) = 1: link e is on the shortest path to node t
 		u = new double[nE][nV];
-
-		double cost = fCostOptMetric(nF, nV, nE, maxP, rf, ii, jj, ce, cv, h,
-				f, k, w, l, x, y, u);
+                
+		double cost = fCostOptMetric(nF,nT, nV, nE, maxP, rf, ii, jj, ce, cv, h,
+				f, k, w, l, x, y, u, cost_et);
 
 		// Write details of output
 		/*
@@ -377,17 +420,18 @@ public class approach2 {
 
 	// demands
 	// int nD;
-	// int [][] h;// = new int[maxV - 1][maxV - 1]; // flow rate of demand (s,t)
+	// int [][][] h;// = new int[maxV - 1][maxV - 1][maxT-1]; // flow rate of demand (s,t) at time window t
 	// int [][][] f;// = new int [maxV - 1][maxV - 1][maxF]; // required VNFs of
 	// demand (s,t)
 
-	static double fCostOptMetric(int nF, int nV, int nE, int maxP, int[] rf,
-			int[] ii, int[] jj, double[] ce, int[] cv, int[][] h, int[][][] f,
-			int[][][][] k, double[] ow, double[][] ol, double[][][][] ox,
-			double[][] oy, double[][] ou) throws IOException {
+	static double fCostOptMetric(int nF, int nT, int nV, int nE, int maxP, int[] rf,
+			int[] ii, int[] jj, double[] ce, int[] cv, int[][][] h, int[][][] f,
+			int[][][][][] k, double[] ow, double[][] ol, double[][][][][] ox,
+			double[][][] oy, double[][] ou, int[][] costet) throws IOException {
 		double cost = -1;
 
 		try {
+                         System.out.println("begin model " );
 			// Create the modeler/solver object
 			IloCplex model = new IloCplex();
 
@@ -409,11 +453,11 @@ public class approach2 {
 			IloIntVar[][] ml = new IloIntVar[nV][nV]; // length of the shortest
 														// path
 
-			// x(epst): rate of flow p from node s to node t on link e
-			IloSemiContVar[][][][] mx = new IloSemiContVar[nE][maxP][nV][nV];
-			IloIntVar[][][][] mb = new IloIntVar[nE][maxP][nV][nV];
-			IloSemiContVar[][] my = new IloSemiContVar[nV][nV];
-			double[][][][] ob = new double[nE][maxP][nV][nV];
+			// x(epstt): rate of flow p from node s to node t on link e at time window t
+			IloSemiContVar[][][][][] mx = new IloSemiContVar[nE][maxP][nV][nV][nT];
+			IloIntVar[][][][][] mb = new IloIntVar[nE][maxP][nV][nV][nT];
+			IloSemiContVar[][][] my = new IloSemiContVar[nV][nV][nT];
+			double[][][][][] ob = new double[nE][maxP][nV][nV][nT];
 			
 			// u(e,t) = 1: link e is on the shortest path to node t
 			IloIntVar[][] mu = new IloIntVar[nE][nV];
@@ -424,7 +468,6 @@ public class approach2 {
 			// mre[e]: penanty cost on link e
 			//IloSemiContVar[] mre = new IloSemiContVar[nE];
 			IloSemiContVar robj;
-			
 			// IloIntVar[] zi = new IloIntVar[nE + nV*nV + nE*nV + nV*nV*nV*nF];
 			// IloSemiContVar[] zf = new IloSemiContVar[nE*maxP*nV*nV + nE*nV +
 			// nE];
@@ -434,10 +477,18 @@ public class approach2 {
 			// //VARIABLES: Set range of decision variables z
 			// metric of nE links
 			int maxW = 0;
-			for (int i = 0; i < nV; i++)
-				for (int j = 0; j < nV; j++) {
-					maxW = maxW + h[i][j]; // sum of all demands
-				}
+                        int maxWt = 0;
+                        for(int tt=0; tt<nT; tt++){
+                            maxWt = 0;
+                            for (int i = 0; i < nV; i++)
+                                for (int j = 0; j < nV; j++) {
+                                        maxWt = maxWt + h[i][j][tt]; // sum of all demands
+                                }
+                            if(maxWt-maxW >0 )
+                                   maxW = maxWt;
+                        }
+			 System.out.println("maxW : " + maxW);
+                         
 			for (int i = 0; i < nE; i++)
 				// zi[i] = model.intVar(1, maxW);
 				mw[i] = model.intVar(1, maxW);
@@ -462,8 +513,8 @@ public class approach2 {
 					// zi[nE + nV*nV + i*nV + j] = model.intVar(0, 1);
 					mu[i][j] = model.intVar(0, 1);
 
-			// k(vsti) = 1: the ith VNF of demand (s,t) is deployed at node v
-			// int [][][][] k;// = new int[nV][nV][nV][nF];//
+			// k(vstit) = 1: the ith VNF of demand (s,t) is deployed at node v at time window tt
+			// int [][][][][] k;// = new int[nV][nV][nV][nF][nT];//
 			// for (int v = 0; v < nV; v++)
 			// for (int s = 0; s < nV; s++)
 			// for (int t = 0; t < nV; t++)
@@ -471,46 +522,92 @@ public class approach2 {
 			// // zi[nE + nV*nV + nE*nV + v*nV*nV*nF + s*nV*nF +
 			// // t*nF + i] =
 			// // model.intVar(0, 1);
-			// mk[v][s][t][i] = model.intVar(0, 1);
+			// mk[v][s][t][i][tt] = model.intVar(0, 1);
 
-			// x(epst): rate of flow p from node s to node t on link e
-			// float [][][][] x;// = new float[nE][maxP][nV][nV] ;
-			float maxRate = 0;
-			for (int i = 0; i < nV; i++)
-				for (int j = 0; j < nV; j++)
-					if (h[i][j] > maxRate)
-						maxRate = h[i][j];
+			// x(epstt): rate of flow p from node s to node t on link e at time window tt
+			// float [][][][][] x;// = new float[nE][maxP][nV][nV][nT];
+                        
+//			float maxRate = 0;
+//                        float maxRateT = 0;
+//                        for(int t=0; t<nT; t++){
+//                            maxRateT = 0;
+//                            for (int i = 0; i < nV; i++)
+//				for (int j = 0; j < nV; j++)
+//					if (h[i][j][t] > maxRateT)
+//						maxRateT = h[i][j][t];
+//                            if(maxRateT-maxRate>0)
+//                                   maxRate = maxRateT;
+//                        }
+                        double maxRate=0;
+			//maxRate = Mz = maximum link capacity
+                        for(int e = 0; e < nE; e++){
+                            if(maxRate < ce[e])
+                                maxRate = ce[e];
+                        }
+                        
+                        System.out.println("maxRate : " + maxRate);
+                        System.out.println("initial : x");
+                        //initial x
+                         for(int tt = 0; tt < nT; tt++)
+                            for (int e = 0; e < nE; e++)
+                                    for (int p = 0; p < maxP; p++)
+                                            for (int s = 0; s < nV; s++)
+                                                    for (int t = 0; t < nV; t++)
+                                                            // zf[e*maxP*nV*nV + p*nV*nV + s*nV + t] =
+                                                            // model.semiContVar((double)0, (double)maxRate,
+                                                            // IloNumVarType.Float);
 
-			for (int e = 0; e < nE; e++)
-				for (int p = 0; p < maxP; p++)
-					for (int s = 0; s < nV; s++)
-						for (int t = 0; t < nV; t++)
-							// zf[e*maxP*nV*nV + p*nV*nV + s*nV + t] =
-							// model.semiContVar((double)0, (double)maxRate,
-							// IloNumVarType.Float);
-							if (h[s][t] > 0) {
-								mx[e][p][s][t] = model.semiContVar((double) 0,
-										(double) maxRate, IloNumVarType.Float);
-								mb[e][p][s][t] = model.intVar(0, 1);
-							} else {
-								mx[e][p][s][t] = model.semiContVar((double) 0,
-										(double) 0, IloNumVarType.Float);
-								mb[e][p][s][t] = model.intVar(0, 1);
-							}
-
-			// float [][] y;// = new float[nV][nV];
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					// zf[nE*maxP*nV*nV + s*nV + t] =
-					// model.semiContVar((double)0, (double)maxRate,
-					// IloNumVarType.Float);
-					if (s != t)
-						my[s][t] = model.semiContVar((double) 0,
-								(double) maxRate, IloNumVarType.Float);
-					else
-						my[s][t] = model.semiContVar((double) 0, (double) 0,
-								IloNumVarType.Float);
-
+                                                            if (h[s][t][tt] > 0) {
+                                                                mx[e][p][s][t][tt] = model.semiContVar((double) 0,
+                                                                                (double) maxRate, IloNumVarType.Float);
+                                                                    mb[e][p][s][t][tt] = model.intVar(0, 1);
+                                                            } else {
+                                                                    mx[e][p][s][t][tt] = model.semiContVar((double) 0,
+                                                                                    (double) 0, IloNumVarType.Float);
+                                                                    mb[e][p][s][t][tt] = model.intVar(0, 1);
+                                                            }
+                        
+			 System.out.println("initial : y");
+//                        //initial y
+			// float [][][] y;// = new float[nV][nV][nT];
+                        for(int tt = 0; tt< nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            // zf[nE*maxP*nV*nV + s*nV + t] =
+                                            // model.semiContVar((double)0, (double)maxRate,
+                                            // IloNumVarType.Float);
+                                            if (s != t)
+                                                    my[s][t][tt] = model.semiContVar((double) 0,
+                                                                    (double) maxRate, IloNumVarType.Float);
+                                            else
+                                                    my[s][t][tt] = model.semiContVar((double) 0, (double) 0,
+                                                                    IloNumVarType.Float);
+                       
+                        System.out.println("initial : objective");
+                        //calculate cobj
+                         IloNumExpr cet = model.constant(0);
+                         cet = model.sum(cet, 0);
+                         System.out.println("initial objective nt: " + nT);
+                         for(int tt = 0; tt < nT; tt++){
+                                IloNumExpr cobj = model.constant(0);
+                                for (int e = 0; e < nE; e++){
+                                System.out.println("initial objective ne: " + nE);
+                                IloNumExpr ye = model.constant(0);
+                                for (int p = 0; p < maxP; p++)
+                                    for(int s = 0; s < nV; s++)
+                                           for(int t= 0; t< nV; t++) {
+                                                   IloNumExpr coste = model.constant(0);
+                                                    System.out.println("costet["+e+"]["+tt+"]: " + costet[e][tt]);
+                                                   coste = model.prod(costet[e][tt], mx[e][p][s][t][tt]);
+                                                   ye = model.sum(ye, coste);
+                                           }
+                                 cobj = model.sum(cobj, ye);
+                               }
+                               System.out.println("initial : tt" + tt);
+                               cet = model.max(cet, cobj);
+//                                cet = model.sum(cet, cobj);
+                         }
+                        
 			// float [] re;
 			// can chinh lai cho chinh xac sau
 			/*
@@ -521,139 +618,152 @@ public class approach2 {
 				mre[e] = model.semiContVar((double) 0,
 						(double) Float.MAX_VALUE, IloNumVarType.Float);
 			*/
-			robj = model.semiContVar((double) 0, (double) 1,
-					IloNumVarType.Float);
+//			robj = model.semiContVar((double) 0, (double) 1,
+//					IloNumVarType.Float);
 			// OBJECTIVE
 			IloNumExpr QQ = model.constant(0);
 			//for (int e = 0; e < nE; e++) {
 			//	QQ = model.sum(QQ, mre[e]);
 			//}
-			QQ = model.sum(QQ, robj);
+			QQ = model.sum(QQ, cet);
+//                        QQ = model.sum(QQ, robj);
 			model.addMinimize(QQ);
-
+                        System.out.println("initial : CONSTRAINTS");
 			// CONSTRAINTS
+                        System.out.println(" Flow balance");
 			// Flow balance
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					if (h[s][t] > 0)
-						for (int p = 0; p < maxP; p++)
-							for (int v = 0; v < nV; v++)
-								if ((s != t) && (v != s) && (v != t)) {
-									IloNumExpr outv = model.constant(0);
-									IloNumExpr inv = model.constant(0);
-									for (int e = 0; e < nE; e++) {
-										if (ii[e] == v)
-											outv = model.sum(outv,
-													mx[e][p][s][t]);
-										if (jj[e] == v)
-											inv = model
-													.sum(inv, mx[e][p][s][t]);
-									}
-									model.addEq(outv, inv);
-								}
+                         for(int tt=0; tt< nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            if (h[s][t][tt] > 0)
+                                                    for (int p = 0; p < maxP; p++)
+                                                            for (int v = 0; v < nV; v++)
+                                                                    if ((s != t) && (v != s) && (v != t)) {
+                                                                            IloNumExpr outv = model.constant(0);
+                                                                            IloNumExpr inv = model.constant(0);
+                                                                            for (int e = 0; e < nE; e++) {
+                                                                                    if (ii[e] == v)
+                                                                                            outv = model.sum(outv,
+                                                                                                            mx[e][p][s][t][tt]);
+                                                                                    if (jj[e] == v)
+                                                                                            inv = model
+                                                                                                            .sum(inv, mx[e][p][s][t][tt]);
+                                                                            }
+                                                                            model.addEq(outv, inv);
+                                                                    }
 
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					if (h[s][t] > 0)
-						if (s != t) {
-							IloNumExpr outst = model.constant(0);
-							for (int p = 0; p < maxP; p++)
-								for (int e = 0; e < nE; e++) {
-									if (ii[e] == s)
-										outst = model
-												.sum(outst, mx[e][p][s][t]);
-								}
+                        for(int tt=0; tt< nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            if (h[s][t][tt] > 0)
+                                                    if (s != t) {
+                                                            IloNumExpr outst = model.constant(0);
+                                                            for (int p = 0; p < maxP; p++)
+                                                                    for (int e = 0; e < nE; e++) {
+                                                                            if (ii[e] == s)
+                                                                                    outst = model
+                                                                                                    .sum(outst, mx[e][p][s][t][tt]);
+                                                                    }
 
-							model.addEq(outst, h[s][t]);
+                                                            model.addEq(outst, h[s][t][tt]);
 
-						}
+                                                    }
+                        
+                        for(int tt=0; tt< nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            if ((h[s][t][tt] > 0) && (s != t)) {
+                                                    IloNumExpr inst = model.constant(0);
+                                                    for (int p = 0; p < maxP; p++)
+                                                            for (int e = 0; e < nE; e++) {
+                                                                    if (jj[e] == t)
+                                                                            inst = model.sum(inst, mx[e][p][s][t][tt]);
+                                                            }
 
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					if ((h[s][t] > 0) && (s != t)) {
-						IloNumExpr inst = model.constant(0);
-						for (int p = 0; p < maxP; p++)
-							for (int e = 0; e < nE; e++) {
-								if (jj[e] == t)
-									inst = model.sum(inst, mx[e][p][s][t]);
-							}
-
-						model.addEq(inst, h[s][t]);
-					}
+                                                    model.addEq(inst, h[s][t][tt]);
+                                            }
 
 			// Traffic flow of demand (s,t) will divided into exactly maxP flows
 			// Traffic of every flow > 0, but can go through the same path
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					if (h[s][t] > 0)
-						for (int p = 0; p < maxP; p++) {
-							IloNumExpr t1 = model.constant(0);
-							for (int e = 0; e < nE; e++) {
-								t1 = model.sum(t1, mx[e][p][s][t]);
-							}
-							t1 = model.sum(t1, -mEpsilon);
-							model.addGe(t1, 0);
-						}
-
+			for(int tt=0; tt< nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            if (h[s][t][tt] > 0)
+                                                    for (int p = 0; p < maxP; p++) {
+                                                            IloNumExpr t1 = model.constant(0);
+                                                            for (int e = 0; e < nE; e++) {
+                                                                    t1 = model.sum(t1, mx[e][p][s][t][tt]);
+                                                            }
+                                                            t1 = model.sum(t1, -mEpsilon);
+                                                            model.addGe(t1, 0);
+                                                    }
+                        System.out.println(" Link capacity");
 			// Link capacity
-			for (int e = 0; e < nE; e++) {
+                        for(int tt=0; tt< nT; tt++){
+                            for (int e = 0; e < nE; e++) {
 				IloNumExpr inst = model.constant(0);
 				for (int s = 0; s < nV; s++)
 					for (int t = 0; t < nV; t++)
-						if (h[s][t] > 0)
+                                           
+						if (h[s][t][tt] > 0)
 							for (int p = 0; p < maxP; p++)
-								inst = model.sum(inst, mx[e][p][s][t]);
+								inst = model.sum(inst, mx[e][p][s][t][tt]);
 				IloNumExpr t2 = model.constant(0);
-				t2 = model.sum(t2, robj);
-				t2 = model.prod(t2, ce[e]);
+//				t2 = model.sum(t2, robj);
+//				t2 = model.prod(t2, ce[e]);
+                                t2 = model.sum(t2,  ce[e]);
 				t2 = model.prod(t2, -1);
 				inst = model.sum(inst, t2);
 				model.addLe(inst, 0);
+                              }
 			}
-
+                         System.out.println(" Load balancing");
 			// Load balancing
-			for (int e = 0; e < nE; e++)
-				for (int t = 0; t < nV; t++)
-					if (ii[e] != t) {
-						IloNumExpr inst = model.constant(0);
+                        for(int tt=0; tt< nT; tt++)
+                            for (int e = 0; e < nE; e++)
+                                    for (int t = 0; t < nV; t++)
+                                            if (ii[e] != t) {
+                                                    IloNumExpr inst = model.constant(0);
 
-						for (int s = 0; s < nV; s++)
-							if (h[s][t] > 0)
-								for (int p = 0; p < maxP; p++)
-									inst = model.sum(inst, mx[e][p][s][t]);
-						inst = model.prod(inst, -1);
-						inst = model.sum(inst, my[ii[e]][t]);
+                                                    for (int s = 0; s < nV; s++)
 
-						model.addGe(inst, 0);
+                                                            if (h[s][t][tt] > 0)
+                                                                    for (int p = 0; p < maxP; p++)
+                                                                            inst = model.sum(inst, mx[e][p][s][t][tt]);
+                                                    inst = model.prod(inst, -1);
+                                                    inst = model.sum(inst, my[ii[e]][t][tt]);
 
-						IloNumExpr eright = model.constant(0);
-						for (int s = 0; s < nV; s++)
-							if (h[s][t] > 0)
-								eright = model.sum(eright, h[s][t]);
-						IloNumExpr t2 = model.constant(0);
-						t2 = model.sum(t2, mu[e][t]);
-						t2 = model.prod(t2, -1);
-						t2 = model.sum(t2, 1);
-						eright = model.prod(t2, eright);
+                                                    model.addGe(inst, 0);
 
-						model.addLe(inst, eright);
-					}
+                                                    IloNumExpr eright = model.constant(0);
+                                                    for (int s = 0; s < nV; s++)
+                                                            if (h[s][t][tt] > 0)
+                                                                    eright = model.sum(eright, h[s][t][tt]);
+                                                    IloNumExpr t2 = model.constant(0);
+                                                    t2 = model.sum(t2, mu[e][t]);
+                                                    t2 = model.prod(t2, -1);
+                                                    t2 = model.sum(t2, 1);
+                                                    eright = model.prod(t2, eright);
 
+                                                    model.addLe(inst, eright);
+                                            }
+                        System.out.println(" shortest path");
 			// shortest path routing
-			for (int e = 0; e < nE; e++)
-				for (int t = 0; t < nV; t++)
-					for (int s = 0; s < nV; s++)
-						if (h[s][t] > 0) {
-							IloNumExpr inst = model.constant(0);
-							for (int p = 0; p < maxP; p++)
-								inst = model.sum(inst, mx[e][p][s][t]);
+                        for(int tt=0; tt< nT; tt++)
+                            for (int e = 0; e < nE; e++)
+                                    for (int t = 0; t < nV; t++)
+                                            for (int s = 0; s < nV; s++)
+                                                    if (h[s][t][tt] > 0) {
+                                                            IloNumExpr inst = model.constant(0);
+                                                            for (int p = 0; p < maxP; p++)
+                                                                    inst = model.sum(inst, mx[e][p][s][t][tt]);
 
-							IloNumExpr eright = model.constant(0);
-							eright = model.sum(eright, mu[e][t]);
-							eright = model.prod(eright, h[s][t]);
+                                                            IloNumExpr eright = model.constant(0);
+                                                            eright = model.sum(eright, mu[e][t]);
+                                                            eright = model.prod(eright, h[s][t][tt]);
 
-							model.addLe(inst, eright);
-						}
+                                                            model.addLe(inst, eright);
+                                                    }
 
 			for (int e = 0; e < nE; e++)
 				for (int t = 0; t < nV; t++) {
@@ -673,7 +783,7 @@ public class approach2 {
 					t2 = model.prod(t2, maxLength);
 					model.addLe(inst, t2);
 				}
-
+                        System.out.println(" VNF");
 			// VNFs
 			// for (int s = 0; s < nV; s++)
 			// for (int t = 0; t < nV; t++)
@@ -690,72 +800,74 @@ public class approach2 {
 			// t1 = model.prod(t1, t2);
 			// model.addGe(t1, t2);
 			// }
-
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					if (h[s][t] > 0)
-						for (int i = 0; i < f[s][t][nF]; i++)
-							// the ith VNF of demand (s,t)
-							for (int p = 0; p < maxP; p++) {
-								IloNumExpr t1 = model.constant(0);
-								for (int e = 0; e < nE; e++) {
-									IloNumExpr t2 = model.constant(0);
-									t2 = model.sum(t2, k[ii[e]][s][t][i]);
-									t2 = model.sum(t2, k[jj[e]][s][t][i]);
-									t2 = model.prod(t2, mx[e][p][s][t]);
-									t1 = model.sum(t1, t2);
-								}
-								t1 = model.sum(t1, -1);
-								model.addGe(t1, 0);
-							}
-
+                        
+                         for (int tt = 0; tt < nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            if (h[s][t][tt] > 0)
+                                                    for (int i = 0; i < f[s][t][nF]; i++)
+                                                            // the ith VNF of demand (s,t)
+                                                            for (int p = 0; p < maxP; p++) {
+                                                                    IloNumExpr t1 = model.constant(0);
+                                                                    for (int e = 0; e < nE; e++) {
+                                                                            IloNumExpr t2 = model.constant(0);
+                                                                            t2 = model.sum(t2, k[ii[e]][s][t][i][tt]);
+                                                                            t2 = model.sum(t2, k[jj[e]][s][t][i][tt]);
+                                                                            t2 = model.prod(t2, mx[e][p][s][t][tt]);
+                                                                            t1 = model.sum(t1, t2);
+                                                                    }
+                                                                    t1 = model.sum(t1, -1);
+                                                                    model.addGe(t1, 0);
+                                                            }
+                         System.out.println(" Do not split flow");
 			// Do not split flow p
-			for (int s = 0; s < nV; s++)
-				for (int t = 0; t < nV; t++)
-					if (h[s][t] > 0)
-						for (int p = 0; p < maxP; p++)
-							for (int e = 0; e < nE; e++) 
-							if ((ii[e] != s) && (jj[e] != t)){
-								IloNumExpr t1 = model.constant(0);
-								t1 = model.sum(t1, maxRate);
-								t1 = model.prod(t1, mb[e][p][s][t]);
-								model.addLe(mx[e][p][s][t], t1);
-								
-								t1 = model.constant(0);
-								for (int e2 = 0; e2 < nE; e2++)
-									if (jj[e2] == ii[e]) {
-										t1 = model.sum(t1, mx[e2][p][s][t]);
-									}
-								model.addLe(mx[e][p][s][t], t1);
-								
-								IloNumExpr t2 = model.constant(0);
-								t2 = model.sum(t2, mb[e][p][s][t]);
-								t2 = model.prod(t2, -1);
-								t2 = model.sum(t2, 1);
-								t2 = model.prod(t2, -maxRate);	
-								t2 = model.sum(t2, t1);
-								
-								model.addGe(mx[e][p][s][t], t2);
-							}
+                        for (int tt = 0; tt < nT; tt++)
+                            for (int s = 0; s < nV; s++)
+                                    for (int t = 0; t < nV; t++)
+                                            if (h[s][t][tt] > 0)
+                                                    for (int p = 0; p < maxP; p++)
+                                                            for (int e = 0; e < nE; e++) 
+                                                            if ((ii[e] != s) && (jj[e] != t)){
+                                                                    IloNumExpr t1 = model.constant(0);
+                                                                    t1 = model.sum(t1, maxRate);
+                                                                    t1 = model.prod(t1, mb[e][p][s][t][tt]);
+                                                                    model.addLe(mx[e][p][s][t][tt], t1);
 
+                                                                    t1 = model.constant(0);
+                                                                    for (int e2 = 0; e2 < nE; e2++)
+                                                                            if (jj[e2] == ii[e]) {
+                                                                                    t1 = model.sum(t1, mx[e2][p][s][t][tt]);
+                                                                            }
+                                                                    model.addLe(mx[e][p][s][t][tt], t1);
+
+                                                                    IloNumExpr t2 = model.constant(0);
+                                                                    t2 = model.sum(t2, mb[e][p][s][t][tt]);
+                                                                    t2 = model.prod(t2, -1);
+                                                                    t2 = model.sum(t2, 1);
+                                                                    t2 = model.prod(t2, -maxRate);	
+                                                                    t2 = model.sum(t2, t1);
+
+                                                                    model.addGe(mx[e][p][s][t][tt], t2);
+                                                            }
+                        System.out.println(" Node capacity");
 			// Node capacity
-			for (int v = 0; v < nV; v++) {
-				IloNumExpr t2 = model.constant(0);
-
-				for (int s = 0; s < nV; s++)
-					for (int t = 0; t < nV; t++)
-						for (int i = 0; i < f[s][t][nF]; i++)
-							if (k[v][s][t][i] == 1) {
-								IloNumExpr t1 = model.constant(0);
-								for (int p = 0; p < maxP; p++)
-									for (int e = 0; e < nE; e++)
-										if (jj[e] == v)
-											t1 = model.sum(t1, mx[e][p][s][t]);
-								t1 = model.prod(t1, rf[f[s][t][i]]);
-								t2 = model.sum(t2, t1);
-							}
-				model.addLe(t2, cv[v]);
-			}
+                        for (int tt = 0; tt < nT; tt++)
+                            for (int v = 0; v < nV; v++) {
+                                    IloNumExpr t2 = model.constant(0);
+                                    for (int s = 0; s < nV; s++)
+                                            for (int t = 0; t < nV; t++)
+                                                    for (int i = 0; i < f[s][t][nF]; i++)
+                                                            if (k[v][s][t][i][tt] == 1) {
+                                                                    IloNumExpr t1 = model.constant(0);
+                                                                    for (int p = 0; p < maxP; p++)
+                                                                            for (int e = 0; e < nE; e++)
+                                                                                    if (jj[e] == v)
+                                                                                            t1 = model.sum(t1, mx[e][p][s][t][tt]);
+                                                                    t1 = model.prod(t1, rf[f[s][t][i]]);
+                                                                    t2 = model.sum(t2, t1);
+                                                            }
+                                    model.addLe(t2, cv[v]);
+                            }
 
 			/*
 			// Penalty cost
@@ -805,10 +917,10 @@ public class approach2 {
 
 			// write model to file
 			model.exportModel("lpex1.lp");
-
+                        System.out.println(" Solve");
 			// solve the model and display the solution if one was found
 			if (model.solve()) {
-
+                                System.out.println(" result");
 				ow = model.getValues(mw);
 
 				for (int i = 0; i < nV; i++)
@@ -823,25 +935,29 @@ public class approach2 {
 					for (int p = 0; p < maxP; p++)
 						for (int s = 0; s < nV; s++)
 							for (int t = 0; t < nV; t++)
-								if (h[s][t] > 0)
-									ox[e][p][s][t] = model
-											.getValue(mx[e][p][s][t]);
-
-				for (int s = 0; s < nV; s++)
-					for (int t = 0; t < nV; t++)
-						if (h[s][t] > 0)
-							oy[s][t] = model.getValue(my[s][t]);
-
-				for (int s = 0; s < nV; s++)
-					for (int t = 0; t < nV; t++)
-						if (h[s][t] > 0)
-							for (int p = 0; p < maxP; p++)
-								for (int e = 0; e < nE; e++) 
-								if ((ii[e] != s) && (jj[e] != t)){
-									ob[e][p][s][t] = model.getValue(mb[e][p][s][t]);
-								}
+                                                             for(int tt=0; tt< nT; tt++)
+								if (h[s][t][tt] > 0){
+									ox[e][p][s][t][tt] = model
+											.getValue(mx[e][p][s][t][tt]);
+                                                                         System.out.println("x["+e+"]["+p+"]["+s+"]["+t+"]["+tt+"]: "+ ox[e][p][s][t][tt]);
+                                                                }
+//
+//				for (int s = 0; s < nV; s++)
+//					for (int t = 0; t < nV; t++)
+//						if (h[s][t] > 0)
+//							oy[s][t] = model.getValue(my[s][t]);
+                                for (int tt = 0; tt < nT; tt++)
+                                    for (int s = 0; s < nV; s++)
+                                            for (int t = 0; t < nV; t++)
+                                                    if (h[s][t][tt] > 0)
+                                                            for (int p = 0; p < maxP; p++)
+                                                                    for (int e = 0; e < nE; e++) 
+                                                                    if ((ii[e] != s) && (jj[e] != t)){
+                                                                            ob[e][p][s][t][tt] = model.getValue(mb[e][p][s][t][tt]);
+                                                                    }
 			}
 			cost = model.getObjValue();
+                        System.out.println("objective: "+ cost);
 			model.end();
 		} catch (IloException e) {
 			System.err.println("Concert exception '" + e + "' caught");
